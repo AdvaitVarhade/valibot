@@ -5,6 +5,7 @@ import { pipe } from '../../methods/pipe/pipe.ts';
 import { array } from '../../schemas/array/array.ts';
 import { number } from '../../schemas/number/number.ts';
 import { string } from '../../schemas/string/string.ts';
+import { union } from '../../schemas/union/union.ts';
 import type { InferInput, InferIssue, InferOutput } from '../../types/index.ts';
 import { filterItems, type FilterItemsAction } from './filterItems.ts';
 
@@ -105,9 +106,15 @@ describe('filterItems', () => {
 
     test('should narrow primitive union in pipe', () => {
       const isNumber = (x: string | number): x is number => typeof x === 'number';
-      const schema = pipe(array(string()), filterItems(isNumber));
+      const schema = pipe(array(union([string(), number()])), filterItems(isNumber));
 
+      expectTypeOf<InferInput<typeof schema>>().toEqualTypeOf<
+        (string | number)[]
+      >();
       expectTypeOf<InferOutput<typeof schema>>().toEqualTypeOf<number[]>();
+
+      const output = parse(schema, ['foo', 123, 'bar', 456]);
+      expectTypeOf(output).toEqualTypeOf<number[]>();
     });
 
     test('should preserve type in pipe with boolean predicate fallback', () => {
